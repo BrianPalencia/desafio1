@@ -1,53 +1,83 @@
+const fs = require('fs');
+
 class ProductManager {
-    constructor() {
-        this.products = [];
+    constructor(filePath) {
+        this.path = filePath;
         this.productIdCounter = 1;
+        this.initializeFile();
     }
 
-    addProduct(title, description, price, thumbnail, stock) {
-        if (!title || !description || !price || !thumbnail || !stock) {
-            console.error('Todos los campos son obligatorios.');
-            return;
+    initializeFile() {
+        if (!fs.existsSync(this.path)) {
+            fs.writeFileSync(this.path, JSON.stringify([]));
         }
+    }
 
-        const existingProduct = this.products.find(product => product.title === title);
-        if (existingProduct) {
-            console.error('Ya existe un producto con el mismo título.');
-            return;
-        }
+    addProduct(newProduct) {
+        const products = this.getProductsFromFile();
+        newProduct.id = this.productIdCounter++;
+        products.push(newProduct);
+        fs.writeFileSync(this.path, JSON.stringify(products));
+    }
 
-        const newProduct = {
-            id: this.productIdCounter++,
-            title,
-            description,
-            price,
-            thumbnail,
-            stock
-        };
-
-        this.products.push(newProduct);
+    getProductsFromFile() {
+        const data = fs.readFileSync(this.path, 'utf8');
+        return JSON.parse(data);
     }
 
     getProducts() {
-        return this.products;
+        return this.getProductsFromFile();
     }
 
     getProductById(id) {
-        const product = this.products.find(product => product.id === id);
+        const products = this.getProductsFromFile();
+        const product = products.find(product => product.id === id);
         if (!product) {
             console.error('Producto no encontrado.');
         }
         return product;
     }
+
+    updateProduct(id, updatedFields) {
+        let products = this.getProductsFromFile();
+        const index = products.findIndex(product => product.id === id);
+        if (index !== -1) {
+            products[index] = { ...products[index], ...updatedFields };
+            fs.writeFileSync(this.path, JSON.stringify(products));
+        } else {
+            console.error('Producto no encontrado.');
+        }
+    }
+
+    deleteProduct(id) {
+        let products = this.getProductsFromFile();
+        products = products.filter(product => product.id !== id);
+        fs.writeFileSync(this.path, JSON.stringify(products));
+    }
 }
 
+const manager = new ProductManager('productos.json');
 
-const manager = new ProductManager();
+manager.addProduct({
+    title: 'Producto 1',
+    description: 'Descripción del Producto 1',
+    price: 20,
+    thumbnail: 'imagen1.jpg',
+    code: 'ABC123',
+    stock: 50
+});
 
-manager.addProduct('Producto 1', 'Descripción del Producto 1', 20, 'imagen1.jpg', 50);
-manager.addProduct('Producto 2', 'Descripción del Producto 2', 30, 'imagen2.jpg', 30);
+manager.addProduct({
+    title: 'Producto 2',
+    description: 'Descripción del Producto 2',
+    price: 30,
+    thumbnail: 'imagen2.jpg',
+    code: 'DEF456',
+    stock: 30
+});
 
-console.log(manager.getProducts()); 
-
-console.log(manager.getProductById(1)); 
-console.log(manager.getProductById(3)); 
+console.log(manager.getProducts());
+console.log(manager.getProductById(1));
+console.log(manager.getProductById(3));
+// manager.updateProduct(1, { price: 25 }); // aca podemos ver el ejemplo del update
+// manager.deleteProduct(1); // y aca esta el ejemplo de borrar o eliminar
